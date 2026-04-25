@@ -111,24 +111,6 @@ Reads 6-channel **PWM signals** from an RC receiver using hardware interrupts, t
 
 ---
 
-##  Getting Started
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/your-username/AutonomousDrone.git
-   ```
-
-2. **Open the desired sketch** from the `test/` folder in the Arduino IDE (or PlatformIO).
-
-3. **Install dependencies** via the Arduino Library Manager (see table above).
-
-4. **Select your board:** `Tools → Board → ESP32 Dev Module`
-
-5. **Wire up** the hardware according to the pin maps above.
-
-6. **Upload** and open the Serial Monitor at **115200 baud**.
-
----
 
 ## Notes
 
