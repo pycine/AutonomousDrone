@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GPS Tracker — Live Dashboard</title>
+  <meta name="description" content="Real-time GPS tracking dashboard with live map, speed, altitude and satellite telemetry.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <!-- Top Bar -->
+  <header id="top-bar">
+    <div class="logo-section">
+      <div class="logo-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+      </div>
+      <h1>GPS Tracker</h1>
+    </div>
+    <div class="status-section">
+      <div id="connection-status" class="status-badge disconnected">
+        <span class="status-dot"></span>
+        <span class="status-text">Disconnected</span>
+      </div>
+      <div id="fix-status" class="status-badge no-fix">
+        <span class="status-dot"></span>
+        <span class="status-text">No Fix</span>
+      </div>
+      <div id="clock" class="clock">--:--:--</div>
+    </div>
+  </header>
+
+  <!-- Main Layout -->
+  <main id="dashboard">
+    <!-- Map Section -->
+    <section id="map-container" class="card">
+      <div id="map"></div>
+      <div id="map-overlay">
+        <button id="btn-center" title="Center on device">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/></svg>
+        </button>
+        <button id="btn-trail" title="Toggle trail" class="active">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </button>
+        <button id="btn-satellite" title="Toggle satellite view">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+        </button>
+      </div>
+      <div id="coordinates-bar">
+        <span id="coord-lat">Lat: --</span>
+        <span class="coord-sep">|</span>
+        <span id="coord-lng">Lng: --</span>
+        <span class="coord-sep">|</span>
+        <span id="coord-alt">Alt: --</span>
+      </div>
+    </section>
+
+    <!-- Telemetry Panel -->
+    <aside id="telemetry">
+      <!-- Speed Gauge -->
+      <div class="card gauge-card" id="speed-card">
+        <div class="card-header">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2"/><path d="M12 6v6l4 2"/></svg>
+          <span>Speed</span>
+        </div>
+        <div class="gauge-container">
+          <svg class="gauge-svg" viewBox="0 0 200 130">
+            <defs>
+              <linearGradient id="speed-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#06d6a0"/>
+                <stop offset="50%" stop-color="#ffd166"/>
+                <stop offset="100%" stop-color="#ef476f"/>
+              </linearGradient>
+            </defs>
+            <path class="gauge-bg" d="M 20 120 A 80 80 0 0 1 180 120" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="12" stroke-linecap="round"/>
+            <path class="gauge-fill" id="speed-arc" d="M 20 120 A 80 80 0 0 1 180 120" fill="none" stroke="url(#speed-grad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="251.3" stroke-dashoffset="251.3"/>
+            <text x="100" y="95" text-anchor="middle" class="gauge-value" id="speed-value">0</text>
+            <text x="100" y="115" text-anchor="middle" class="gauge-unit">km/h</text>
+            <text x="25" y="130" text-anchor="middle" class="gauge-label">0</text>
+            <text x="175" y="130" text-anchor="middle" class="gauge-label">120</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="card stat-card" id="altitude-card">
+          <div class="stat-icon altitude-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21l4-11 4 11"/><path d="M2 21h20"/><path d="M12 3v3"/></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Altitude</span>
+            <span class="stat-value" id="altitude-value">--</span>
+            <span class="stat-unit">meters</span>
+          </div>
+        </div>
+
+        <div class="card stat-card" id="satellites-card">
+          <div class="stat-icon satellites-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.04.02-7.36-4.5-11.9-4.54-4.52-9.86-6.54-11.9-4.5"/><path d="M15.7 15.7c4.52-4.54 6.54-9.86 4.5-11.9"/></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Satellites</span>
+            <span class="stat-value" id="satellites-value">--</span>
+            <span class="stat-unit">tracked</span>
+          </div>
+        </div>
+
+        <div class="card stat-card" id="course-card">
+          <div class="stat-icon course-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Heading</span>
+            <span class="stat-value" id="course-value">--</span>
+            <span class="stat-unit">degrees</span>
+          </div>
+        </div>
+
+        <div class="card stat-card" id="distance-card">
+          <div class="stat-icon distance-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Distance</span>
+            <span class="stat-value" id="distance-value">0</span>
+            <span class="stat-unit">km</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compass -->
+      <div class="card compass-card" id="compass-container">
+        <div class="card-header">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+          <span>Compass</span>
+        </div>
+        <div class="compass-wrapper">
+          <div class="compass-ring">
+            <div class="compass-directions">
+              <span class="dir-n">N</span>
+              <span class="dir-e">E</span>
+              <span class="dir-s">S</span>
+              <span class="dir-w">W</span>
+            </div>
+            <div class="compass-needle" id="compass-needle">
+              <div class="needle-north"></div>
+              <div class="needle-south"></div>
+            </div>
+            <div class="compass-center"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DateTime & Session -->
+      <div class="card info-card">
+        <div class="info-row">
+          <span class="info-label">GPS Date</span>
+          <span class="info-value" id="gps-date">--/--/----</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">GPS Time (UTC)</span>
+          <span class="info-value" id="gps-time">--:--:--</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Last Update</span>
+          <span class="info-value" id="last-update">Never</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Data Points</span>
+          <span class="info-value" id="data-points">0</span>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Speed Chart -->
+  <section id="chart-section" class="card">
+    <div class="card-header">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span>Speed &amp; Altitude History</span>
+    </div>
+    <canvas id="history-chart"></canvas>
+  </section>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
